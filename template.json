@@ -1,0 +1,571 @@
+{
+  "name": "TrendRadar v6 AI News and Trend Monitor",
+  "description": "Track trends on Chinese and global platforms with AI summaries and alerts.",
+  "category": "Automation",
+  "tags": [
+    "trendradar",
+    "news",
+    "trends",
+    "monitoring",
+    "rss",
+    "alerts",
+    "ai",
+    "mcp",
+    "newsnow"
+  ],
+  "image": "https://cdn.jsdelivr.net/gh/sansan0/TrendRadar@v6.11.0/_image/banner.webp",
+  "upstream": {
+    "repo": "sansan0/TrendRadar",
+    "version": "v6.11.0 (tag 2026-10-13, commit ceabb02); MCP server mcp-v4.1.1 (same commit)",
+    "license": "GPL-3.0",
+    "checked": "2026-10-20"
+  },
+  "services": {
+    "gateway": {
+      "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/caddy.svg",
+      "source": {
+        "repo": "baranberkay96/trendradar-railway",
+        "rootDirectory": "/services/gateway"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/gateway-health",
+      "healthcheckTimeout": 120,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": true,
+      "targetPort": 8080,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "PORT": {
+          "defaultValue": "8080",
+          "description": "Port Caddy listens on; the public domain and Railway's healthcheck use it.",
+          "required": false
+        },
+        "REPORTS_USERNAME": {
+          "defaultValue": "admin",
+          "description": "Login name for the report pages (HTTP basic auth). Letters, digits and . _ @ - only.",
+          "required": false
+        },
+        "REPORTS_PASSWORD": {
+          "defaultValue": "${{secret(24, \"abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789\")}}",
+          "description": "Report password, generated at deploy (at least 12 characters). Change it here and redeploy the gateway.",
+          "required": false
+        },
+        "REPORTS_PUBLIC": {
+          "defaultValue": "false",
+          "description": "true removes the login from the report pages (the MCP route keeps its token). Reports show your keyword interests.",
+          "required": false
+        },
+        "REPORTS_UPSTREAM": {
+          "defaultValue": "${{trendradar.RAILWAY_PRIVATE_DOMAIN}}:${{trendradar.PORT}}",
+          "description": "Private host:port of the trendradar report server.",
+          "required": false
+        },
+        "MCP_UPSTREAM": {
+          "defaultValue": "${{trendradar-mcp.RAILWAY_PRIVATE_DOMAIN}}:${{trendradar-mcp.PORT}}",
+          "description": "Private host:port of the trendradar-mcp service; empty makes /mcp answer 404.",
+          "required": false
+        },
+        "MCP_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/mcp",
+          "description": "Informational: the URL to put in your MCP client, with the trendradar-mcp MCP_TOKEN as bearer token.",
+          "required": false
+        }
+      }
+    },
+    "trendradar": {
+      "icon": "https://cdn.jsdelivr.net/gh/sansan0/TrendRadar@v6.11.0/_image/banner.webp",
+      "source": {
+        "repo": "baranberkay96/trendradar-railway",
+        "rootDirectory": "/services/trendradar"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/healthz",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ALWAYS",
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": {
+        "mountPath": "/data"
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "8080",
+          "description": "Port of the private report server (also Railway's healthcheck port). The gateway proxies to it.",
+          "required": false
+        },
+        "TZ": {
+          "defaultValue": "UTC",
+          "description": "IANA timezone (e.g. Europe/Istanbul, Asia/Shanghai) for the container clock and CRON_SCHEDULE.",
+          "required": false
+        },
+        "TIMEZONE": {
+          "defaultValue": "${{TZ}}",
+          "description": "TrendRadar timezone for report dates, file names and push windows. Follows TZ.",
+          "required": false
+        },
+        "CRON_SCHEDULE": {
+          "defaultValue": "*/30 * * * *",
+          "description": "Five-field crontab for crawls (supercronic inside the container). Digits, * / , - and spaces only.",
+          "required": false
+        },
+        "IMMEDIATE_RUN": {
+          "defaultValue": "true",
+          "description": "Run one crawl at every boot, so a report exists right after deploy.",
+          "required": false
+        },
+        "REPORT_RETENTION_DAYS": {
+          "defaultValue": "30",
+          "description": "Days of dated HTML report snapshots kept on the volume (pruned daily). 0 keeps everything.",
+          "required": false
+        },
+        "CONFIG_LANGUAGE": {
+          "defaultValue": "en",
+          "description": "Starting config: en (English config and labels) or zh (upstream Chinese config). Applied on first boot or with CONFIG_RESEED.",
+          "required": false
+        },
+        "CONFIG_RESEED": {
+          "defaultValue": "false",
+          "description": "true copies the default config files again on the next boot (old ones backed up on the volume). Set back to false afterwards.",
+          "required": false
+        },
+        "CONFIG_YAML": {
+          "defaultValue": "",
+          "description": "Optional. Full contents of config.yaml (platforms, RSS feeds, report mode, AI options). Replaces the file on every boot.",
+          "required": false
+        },
+        "FREQUENCY_WORDS": {
+          "defaultValue": "",
+          "description": "Optional. Full contents of frequency_words.txt (your keyword groups). Replaces the file on every boot.",
+          "required": false
+        },
+        "AI_INTERESTS": {
+          "defaultValue": "",
+          "description": "Optional. Full contents of ai_interests.txt, used when the AI filter is on (filter.method: ai).",
+          "required": false
+        },
+        "PLATFORMS_API_URL": {
+          "defaultValue": "http://${{newsnow.RAILWAY_PRIVATE_DOMAIN}}:${{newsnow.PORT}}/api/s",
+          "description": "Hot-list API. Default: the private newsnow service. Set https://newsnow.busiyi.world/api/s to use the public instance instead.",
+          "required": false
+        },
+        "STORAGE_BACKEND": {
+          "defaultValue": "remote",
+          "description": "remote keeps the daily SQLite history in the Railway Bucket (the MCP service reads it from there); local keeps it on the volume.",
+          "required": false
+        },
+        "S3_ENDPOINT_URL": {
+          "defaultValue": "${{Bucket.ENDPOINT}}",
+          "description": "S3 endpoint of the template's Railway Bucket.",
+          "required": false
+        },
+        "S3_BUCKET_NAME": {
+          "defaultValue": "${{Bucket.BUCKET}}",
+          "description": "S3 bucket name of the Railway Bucket.",
+          "required": false
+        },
+        "S3_ACCESS_KEY_ID": {
+          "defaultValue": "${{Bucket.ACCESS_KEY_ID}}",
+          "description": "Railway Bucket access key id.",
+          "required": false
+        },
+        "S3_SECRET_ACCESS_KEY": {
+          "defaultValue": "${{Bucket.SECRET_ACCESS_KEY}}",
+          "description": "Railway Bucket secret key.",
+          "required": false
+        },
+        "S3_REGION": {
+          "defaultValue": "${{Bucket.REGION}}",
+          "description": "Railway Bucket region (auto).",
+          "required": false
+        },
+        "AI_API_KEY": {
+          "defaultValue": "",
+          "description": "Optional. LLM API key for AI analysis, translation and the AI filter (LiteLLM). AI stays off while this is empty.",
+          "required": false
+        },
+        "AI_MODEL": {
+          "defaultValue": "",
+          "description": "Optional. LiteLLM model id provider/model, e.g. deepseek/deepseek-v4-flash (config default), openai/gpt-4o or gemini/gemini-2.5-flash.",
+          "required": false
+        },
+        "AI_API_BASE": {
+          "defaultValue": "",
+          "description": "Optional. OpenAI-compatible endpoint (e.g. OpenRouter, a proxy or Ollama); prefix AI_MODEL with openai/ when you use it.",
+          "required": false
+        },
+        "AI_ANALYSIS_ENABLED": {
+          "defaultValue": "",
+          "description": "Optional. true/false. Empty = on when AI_API_KEY is set. AI briefing in each report and push.",
+          "required": false
+        },
+        "AI_TRANSLATION_ENABLED": {
+          "defaultValue": "",
+          "description": "Optional. true/false. Empty = on when AI_API_KEY is set. Translates RSS and standalone titles.",
+          "required": false
+        },
+        "AI_TRANSLATION_LANGUAGE": {
+          "defaultValue": "",
+          "description": "Optional. Target language for AI translation (config default English).",
+          "required": false
+        },
+        "AI_FILTER_ENABLED": {
+          "defaultValue": "",
+          "description": "Optional. true switches the hot-list filter from keywords to AI interest classification (costs tokens every run).",
+          "required": false
+        },
+        "SCHEDULE_ENABLED": {
+          "defaultValue": "",
+          "description": "Optional. true turns on upstream's push schedule (timeline.yaml); empty keeps the config default (off: push after every crawl).",
+          "required": false
+        },
+        "SCHEDULE_PRESET": {
+          "defaultValue": "",
+          "description": "Optional. Schedule preset when SCHEDULE_ENABLED=true: always_on, morning_evening, office_hours or night_owl.",
+          "required": false
+        },
+        "TELEGRAM_BOT_TOKEN": {
+          "defaultValue": "",
+          "description": "Optional. Telegram bot token from @BotFather. Set together with TELEGRAM_CHAT_ID; several accounts separated by ;.",
+          "required": false
+        },
+        "TELEGRAM_CHAT_ID": {
+          "defaultValue": "",
+          "description": "Optional. Telegram chat id that receives the pushes (same count as tokens).",
+          "required": false
+        },
+        "SLACK_WEBHOOK_URL": {
+          "defaultValue": "",
+          "description": "Optional. Slack incoming webhook URL.",
+          "required": false
+        },
+        "GENERIC_WEBHOOK_URL": {
+          "defaultValue": "",
+          "description": "Optional. Generic webhook URL (Discord, Matrix, IFTTT, n8n and others).",
+          "required": false
+        },
+        "GENERIC_WEBHOOK_TEMPLATE": {
+          "defaultValue": "",
+          "description": "Optional. JSON body for the generic webhook with {title} and {content} placeholders, e.g. {\"content\": \"{content}\"} for Discord.",
+          "required": false
+        },
+        "NTFY_TOPIC": {
+          "defaultValue": "",
+          "description": "Optional. ntfy topic to push to.",
+          "required": false
+        },
+        "NTFY_SERVER_URL": {
+          "defaultValue": "",
+          "description": "Optional. ntfy server URL; empty uses https://ntfy.sh.",
+          "required": false
+        },
+        "NTFY_TOKEN": {
+          "defaultValue": "",
+          "description": "Optional. ntfy access token for protected topics.",
+          "required": false
+        },
+        "BARK_URL": {
+          "defaultValue": "",
+          "description": "Optional. Bark push URL (iOS), https://api.day.app/{device_key}.",
+          "required": false
+        },
+        "FEISHU_WEBHOOK_URL": {
+          "defaultValue": "",
+          "description": "Optional. Feishu / Lark bot webhook URL.",
+          "required": false
+        },
+        "DINGTALK_WEBHOOK_URL": {
+          "defaultValue": "",
+          "description": "Optional. DingTalk bot webhook URL.",
+          "required": false
+        },
+        "WEWORK_WEBHOOK_URL": {
+          "defaultValue": "",
+          "description": "Optional. WeCom (WeChat Work) bot webhook URL.",
+          "required": false
+        },
+        "WEWORK_MSG_TYPE": {
+          "defaultValue": "",
+          "description": "Optional. WeCom message type: markdown (group bot, default) or text (personal WeChat via a WeCom app).",
+          "required": false
+        },
+        "EMAIL_FROM": {
+          "defaultValue": "",
+          "description": "Optional. Sender address for email reports. Outbound SMTP works only on Railway Pro; prefer a webhook channel.",
+          "required": false
+        },
+        "EMAIL_PASSWORD": {
+          "defaultValue": "",
+          "description": "Optional. SMTP password or app password for EMAIL_FROM.",
+          "required": false
+        },
+        "EMAIL_TO": {
+          "defaultValue": "",
+          "description": "Optional. Recipient address(es), comma separated.",
+          "required": false
+        },
+        "EMAIL_SMTP_SERVER": {
+          "defaultValue": "",
+          "description": "Optional. SMTP host; auto-detected from EMAIL_FROM when empty.",
+          "required": false
+        },
+        "EMAIL_SMTP_PORT": {
+          "defaultValue": "",
+          "description": "Optional. SMTP port; auto-detected when empty.",
+          "required": false
+        }
+      }
+    },
+    "trendradar-mcp": {
+      "icon": "https://cdn.jsdelivr.net/gh/sansan0/TrendRadar@v6.11.0/_image/banner.webp",
+      "source": {
+        "repo": "baranberkay96/trendradar-railway",
+        "rootDirectory": "/services/mcp"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/healthz",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ALWAYS",
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "PORT": {
+          "defaultValue": "3333",
+          "description": "Port of the MCP server (streamable HTTP at /mcp, healthcheck /healthz).",
+          "required": false
+        },
+        "MCP_TOKEN": {
+          "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Bearer token every MCP request must send (Authorization: Bearer {token}). Generated at deploy.",
+          "required": false
+        },
+        "MCP_SYNC_DAYS": {
+          "defaultValue": "30",
+          "description": "Days of crawler history copied from the Bucket for the MCP tools.",
+          "required": false
+        },
+        "MCP_SYNC_INTERVAL": {
+          "defaultValue": "300",
+          "description": "Seconds between Bucket syncs (today's database changes after every crawl).",
+          "required": false
+        },
+        "S3_ENDPOINT_URL": {
+          "defaultValue": "${{Bucket.ENDPOINT}}",
+          "description": "S3 endpoint of the template's Railway Bucket.",
+          "required": false
+        },
+        "S3_BUCKET_NAME": {
+          "defaultValue": "${{Bucket.BUCKET}}",
+          "description": "S3 bucket name of the Railway Bucket.",
+          "required": false
+        },
+        "S3_ACCESS_KEY_ID": {
+          "defaultValue": "${{Bucket.ACCESS_KEY_ID}}",
+          "description": "Railway Bucket access key id.",
+          "required": false
+        },
+        "S3_SECRET_ACCESS_KEY": {
+          "defaultValue": "${{Bucket.SECRET_ACCESS_KEY}}",
+          "description": "Railway Bucket secret key.",
+          "required": false
+        },
+        "S3_REGION": {
+          "defaultValue": "${{Bucket.REGION}}",
+          "description": "Railway Bucket region (auto).",
+          "required": false
+        },
+        "TZ": {
+          "defaultValue": "${{trendradar.TZ}}",
+          "description": "Timezone, same as the trendradar service.",
+          "required": false
+        },
+        "TIMEZONE": {
+          "defaultValue": "${{trendradar.TIMEZONE}}",
+          "description": "TrendRadar timezone, same as the trendradar service.",
+          "required": false
+        },
+        "CONFIG_LANGUAGE": {
+          "defaultValue": "${{trendradar.CONFIG_LANGUAGE}}",
+          "description": "Same starting config as the trendradar service.",
+          "required": false
+        },
+        "CONFIG_YAML": {
+          "defaultValue": "${{trendradar.CONFIG_YAML}}",
+          "description": "Same config.yaml override as the trendradar service (empty = defaults).",
+          "required": false
+        },
+        "FREQUENCY_WORDS": {
+          "defaultValue": "${{trendradar.FREQUENCY_WORDS}}",
+          "description": "Same keyword groups as the trendradar service (empty = defaults).",
+          "required": false
+        },
+        "AI_INTERESTS": {
+          "defaultValue": "${{trendradar.AI_INTERESTS}}",
+          "description": "Same AI interests file as the trendradar service (empty = defaults).",
+          "required": false
+        },
+        "PLATFORMS_API_URL": {
+          "defaultValue": "${{trendradar.PLATFORMS_API_URL}}",
+          "description": "Hot-list API for the trigger_crawl tool, same as the trendradar service.",
+          "required": false
+        },
+        "TELEGRAM_BOT_TOKEN": {
+          "defaultValue": "${{trendradar.TELEGRAM_BOT_TOKEN}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "TELEGRAM_CHAT_ID": {
+          "defaultValue": "${{trendradar.TELEGRAM_CHAT_ID}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "SLACK_WEBHOOK_URL": {
+          "defaultValue": "${{trendradar.SLACK_WEBHOOK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "GENERIC_WEBHOOK_URL": {
+          "defaultValue": "${{trendradar.GENERIC_WEBHOOK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "GENERIC_WEBHOOK_TEMPLATE": {
+          "defaultValue": "${{trendradar.GENERIC_WEBHOOK_TEMPLATE}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "NTFY_TOPIC": {
+          "defaultValue": "${{trendradar.NTFY_TOPIC}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "NTFY_SERVER_URL": {
+          "defaultValue": "${{trendradar.NTFY_SERVER_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "NTFY_TOKEN": {
+          "defaultValue": "${{trendradar.NTFY_TOKEN}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "BARK_URL": {
+          "defaultValue": "${{trendradar.BARK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "FEISHU_WEBHOOK_URL": {
+          "defaultValue": "${{trendradar.FEISHU_WEBHOOK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "DINGTALK_WEBHOOK_URL": {
+          "defaultValue": "${{trendradar.DINGTALK_WEBHOOK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "WEWORK_WEBHOOK_URL": {
+          "defaultValue": "${{trendradar.WEWORK_WEBHOOK_URL}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "WEWORK_MSG_TYPE": {
+          "defaultValue": "${{trendradar.WEWORK_MSG_TYPE}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "EMAIL_FROM": {
+          "defaultValue": "${{trendradar.EMAIL_FROM}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "EMAIL_PASSWORD": {
+          "defaultValue": "${{trendradar.EMAIL_PASSWORD}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "EMAIL_TO": {
+          "defaultValue": "${{trendradar.EMAIL_TO}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "EMAIL_SMTP_SERVER": {
+          "defaultValue": "${{trendradar.EMAIL_SMTP_SERVER}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        },
+        "EMAIL_SMTP_PORT": {
+          "defaultValue": "${{trendradar.EMAIL_SMTP_PORT}}",
+          "description": "Same as trendradar (used by the send_notification tool).",
+          "required": false
+        }
+      }
+    },
+    "newsnow": {
+      "icon": "https://cdn.jsdelivr.net/gh/ourongxing/newsnow@v0.0.41/public/icon.svg",
+      "source": {
+        "image": "ghcr.io/ourongxing/newsnow:v0.0.41"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/api/latest",
+      "healthcheckTimeout": 120,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "PORT": {
+          "defaultValue": "4444",
+          "description": "Port of the newsnow API (private only; healthcheck /api/latest).",
+          "required": false
+        },
+        "HOST": {
+          "defaultValue": "::",
+          "description": "Listen on all IPv4 and IPv6 addresses (dual stack) for the private network.",
+          "required": false
+        },
+        "NODE_ENV": {
+          "defaultValue": "production",
+          "description": "Node.js production mode.",
+          "required": false
+        },
+        "INIT_TABLE": {
+          "defaultValue": "true",
+          "description": "Create newsnow's cache table on start.",
+          "required": false
+        },
+        "ENABLE_CACHE": {
+          "defaultValue": "true",
+          "description": "Cache each source for its refresh interval (about 10 minutes), which also rate-limits calls to the source sites.",
+          "required": false
+        },
+        "PRODUCTHUNT_API_TOKEN": {
+          "defaultValue": "",
+          "description": "Optional. Product Hunt API token, only needed if you add the producthunt source to your platforms.",
+          "required": false
+        }
+      }
+    }
+  },
+  "buckets": [
+    "Bucket"
+  ]
+}

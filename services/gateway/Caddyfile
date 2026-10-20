@@ -1,0 +1,50 @@
+# TrendRadar gateway for Railway (community template).
+#
+# The only public service.
+#   /gateway-health  -> 200, Railway's healthcheck for this service
+#   /mcp, /mcp/*     -> trendradar-mcp (no login prompt here: MCP clients cannot
+#                       answer one; the MCP service itself requires
+#                       "Authorization: Bearer {MCP_TOKEN}" on every request)
+#   everything else  -> HTTP basic auth, then the report server of the
+#                       trendradar service (latest report, dated archive)
+#
+# /tmp/gateway/auth.caddy and /tmp/gateway/mcp.caddy are written at start by
+# entrypoint.sh.
+{
+	admin off
+	auto_https off
+	servers {
+		# Railway's edge reaches the service from private address space.
+		trusted_proxies static private_ranges 100.64.0.0/10
+		client_ip_headers X-Forwarded-For
+	}
+}
+
+:{$PORT:8080} {
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	handle /gateway-health {
+		respond "ok" 200
+	}
+
+	@mcp path /mcp /mcp/*
+	handle @mcp {
+		import /tmp/gateway/mcp.caddy
+	}
+
+	handle {
+		import /tmp/gateway/auth.caddy
+		# The browser repeats the basic-auth credential on every request; the
+		# report server never needs it.
+		request_header -Authorization
+		encode gzip
+		reverse_proxy {$REPORTS_UPSTREAM} {
+			lb_try_duration 10s
+		}
+	}
+}

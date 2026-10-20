@@ -1,0 +1,68 @@
+{
+  "_comment": "Default TrendRadar config files fetched at image build time from the pinned upstream commit and checked against SHA-256. Upgrade: change tag/commit and every sha256 (they must match the new tag), then rebuild.",
+  "repo": "sansan0/TrendRadar",
+  "tag": "v6.11.0",
+  "commit": "ceabb027fe9bbdafec59dbbfa12cb46c2ba256ce",
+  "files": [
+    {
+      "src": "config/config.en.yaml",
+      "dst": "en/config.yaml",
+      "sha256": "d5058ab03cd64d3ed0b8e793777eb129311954928cd65b671c86a8ab21f48bab"
+    },
+    {
+      "src": "config/frequency_words.en.txt",
+      "dst": "en/frequency_words.txt",
+      "sha256": "70be560be1822a2adbaa5bf4029a567bec18e28e3df650937c86adec89f5db80"
+    },
+    {
+      "src": "config/timeline.en.yaml",
+      "dst": "en/timeline.yaml",
+      "sha256": "d9f11b5e225cbe95064dc0408cb6539f33830fdcd4c25d86af93dbeca267995d"
+    },
+    {
+      "src": "config/config.yaml",
+      "dst": "zh/config.yaml",
+      "sha256": "57343b64844820ebcc13dc68751e82869927f39407ef95659f13d8f49078a039"
+    },
+    {
+      "src": "config/frequency_words.txt",
+      "dst": "zh/frequency_words.txt",
+      "sha256": "86302da28d1a9a306440c603deecde3d03c7e37bc16fbefaffd33ad886caa796"
+    },
+    {
+      "src": "config/timeline.yaml",
+      "dst": "zh/timeline.yaml",
+      "sha256": "38cc234151f6805908005c0319426ce67409f466b4a9d6fbce89b64407573b36"
+    },
+    {
+      "src": "config/ai_interests.txt",
+      "dst": "common/ai_interests.txt",
+      "sha256": "7aea1b8ca2301fd1201b0de0cd819d701dc16e0542fc11c3885a544e1bff7e0f"
+    },
+    {
+      "src": "config/ai_analysis_prompt.txt",
+      "dst": "common/ai_analysis_prompt.txt",
+      "sha256": "b59dfaea0eec8c299ba4f8ac97e93fd03a2a27340632e9a8d4a2b58594049ba6"
+    },
+    {
+      "src": "config/ai_translation_prompt.txt",
+      "dst": "common/ai_translation_prompt.txt",
+      "sha256": "693dc4309c4357a8afd74a3893fc449eef7c9b8d7b14c2d5dfe42432ef0d0859"
+    },
+    {
+      "src": "config/ai_filter/prompt.txt",
+      "dst": "common/ai_filter/prompt.txt",
+      "sha256": "09a9f5b7e638251c12614e81c3b626a901e9d47708b5fc13043285ff1cd9df59"
+    },
+    {
+      "src": "config/ai_filter/extract_prompt.txt",
+      "dst": "common/ai_filter/extract_prompt.txt",
+      "sha256": "6fa0e6402f9e113b4b1a0df6b7df66aa1528b116ad791ce22225e4de2d86d919"
+    },
+    {
+      "src": "config/ai_filter/update_tags_prompt.txt",
+      "dst": "common/ai_filter/update_tags_prompt.txt",
+      "sha256": "d7e62c322d7941b15fc8fc5d7e6ead7840e1f3afe06ae8bf669c1b0ee6dd89f7"
+    }
+  ]
+}
