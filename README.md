@@ -1,5 +1,7 @@
 # Deploy and Host TrendRadar with Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/trendradar-v6-ai-news-and-trend-monitor?referralCode=20H68q)
+
 TrendRadar is an open-source trend monitor. On a schedule it collects trending lists from Chinese platforms such as Weibo, Zhihu, Douyin and Baidu plus any RSS feeds you add, keeps what matches your keywords, writes an HTML report, optionally adds an AI summary, and pushes the result to your chat or phone.
 
 ## About Hosting TrendRadar
